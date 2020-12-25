@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+</head>
+
+<body>
+    <section class="jumbotron text-center">
+        <div class="container">
+            <h1 class="jumbotron-heading">Halfix x86 Emulator</h1>
+            <p>
+                <a class="btn btn-primary" href="index.html">Main</a>
+                <a class="btn btn-info" href="https://www.github.com/nepx/halfix">GitHub</a>
+            </p>
+        </div>
+    </section>
+    <main class="col-12 col-md-9 col-xl-8 py-md-3 pl-md-5 bd-content" role="main">
+        <h1 class="bd-title">Frequently Asked Questions</h1>
+        <h2>What is Halfix?</h2>
+        <p>Halfix is an x86 emulator that simulates the hardware of a 90's era PC, although it can run newer software. It started out as an emulator for DOS .COM files and later grew into a full-system emulator. </p>
+        
+        <h2>Is it secure?</h2>
+        <p>The entire emulator runs inside of the browser sandbox (perhiperals and all). No code is directly executed on the host CPU, although an x86-to-WebAssembly JIT would be interesting to write. No state is persisted between page loads; you can restore the original state of the VM by simply refreshing the page. </p>
+        <p>Although it is impossible to say for sure, it is very unlikely (read: impossible) that malicious code in the emulator will be able to infect your computer. In order to do so, malicious code has to find and exploit a flaw in the emulator itself, the WebAssembly VM, and the browser sandbox. </p>
+        
+        <h2>How fast is it?</h2>
+        <p>On my system, it reaches up to 30 MIPS during normal use and climbs up to 50 MIPS while it hangs (i.e. BSOD). There may be peaks and dips during regular usage. When idling, it may drop to below 1 MIPS; this simply indicates that the emulator simply doesn't have anything to do. </p>
+        
+        <h2>Why's it so slow?</h2>
+        <p>You're running an x86 emulator on top of a WebAssembly VM that's running in a browser. Of course it's not going to be fast. The emulator is focused more on correctness (and compatiblity) than raw speed. </p>
+        <p>A major limiting factor is Internet speed. Network latencies are often orders of magnitude slower than the slowest mechanical hard drives. The browser loop also mandates that the emulator yield several times a second, which is good for rendering and usability but not performance.</p>
+        
+        <h2>How does it work under the hood?</h2>
+        <p>Halfix is composed of a CPU emulator and a number of different hardware devices, some of which can be configured at runtime. The hard disk emulator downloads compressed chunks of disk images as they're needed, and it caches them so that they don't need to be re-downloaded. </p>
+        <p>The emulator itself is written in C (C99 to be precise) and compiled to WebAssembly via Emscripten, but the browser runtime environment, including the disk image downloader and cacher, is written in JavaScript. </p>
+        
+        <h2>Is it open source?</h2>
+        <p>Yes, the emulator itself is open source. </p>
+        
+        <h2>I'm pretty sure the clock is bugged...</h2>
+        <p>Yes, time flows differently in the Halfix world than it does out here in the real world. This is because Halfix time is pegged to how many instructions are executed by the emulator, not the wall clock. Currently, the emulator is configured so that every 50,000,000 instructions executed, one emulated second will have gone by. While it can be fixed by inserting some pauses into the code, it ends up making the emulator slower.</p>
+        <p>While it might be a pain for you to use, it's a significant boon during debugging because it makes the emulator deterministic: given the same disk image, the emulator repeats the exact same sequence of instructions. </p>
+        
+        <h2>My mouse cursor went crazy in the Windows NT VM</h2>
+        <p>Unfortunately, this is a bug that I think originates in the PS/2 controller emulation but I'm not sure. </p>
+        
+        <h2>I jiggled my mouse during OS/2 boot and it's complaining about a mouse driver</h2>
+        <p>Don't jiggle the mouse during OS/2 boot. It freaks out if anything is in the controller queue during bootup. A solution might be to disable mouse input until the controller's initialized, but unfortunately that breaks the mouse in Windows XP. </p>
+        
+        <h2>I have to click multiple times in order for OS/2 to register my clicks</h2>
+        <p>Unfortunately, I think it's another PS/2 controller bug, but that bug aside, everything works well otherwise. </p>
+        
+        <h2>I found that ___ doesn't work.</h2>
+        <p>Please <a href="https://github.com/nepx/halfix/blob/master/compatibility.md">create an issue</a>!</p>
+
+        <h2>What operating systems does this support?</h2>
+        <p>More than the three demos, certainly. A full list is <a href="https://github.com/nepx/halfix/blob/master/compatibility.md">here</a>, but the most stable ones are Windows 9x and XP, and some text mode Linux distributions. ReactOS works well, but it takes a while to boot in the browser. </p>
+        
+        <h2>Why? What's the point?</h2>
+        <p>I started this project because I wanted to run a few DOS applications in the browser, and for one reason or another, I decided to write my own. One thing led to another, and here we are. It's overkill, really, but I liked the challenge and ended up learning a thing or two about the x86 architecture. </p>
+        <p>Some practical reasons (presented in no particular order): 
+            <ul>
+                <li>It exercised my C programming skills.</li>
+                <li>Tested the limits of my patience when operating systems refused to boot. </li>
+                <li>Deploy old software and video games.</li>
+                <li>Hopefully the codebase is clear and accurate enough that it can be a reference implementation for other x86 emulators.</li>
+            </ul>
+        </p>
+        
+        <h2>Why Halfix instead of <code>[insert emulator here]</code>?</h2>
+        <p>No reason, really. The only major benefits are that it runs in the browser and can isolate its CPU component into a separate library. </p>
+        
+        <h2>What now?</h2>
+        <p>I want to support savestates so that I don't have to sit through long boot processes and start up the emulator (this would also allow me to spin up a VM on the native version and continue running it in a browser tab). A better UI is in order for the native version, in addition to networking support. The networking device exists in the source tree, but it doesn't connect to anything and crashes the emulator. </p>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Halfix x86 Emulator</title>
+    <meta charset="utf-8">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <style>
+        .progress {
+            text-align: center;
+        }
+        
+        .progress-value {
+            position: absolute;
+            right: 0;
+            left: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+        <span class="navbar-brand col-sm-3 col-md-2 mr-0">Halfix x86 Emulator</span>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                <div class="sidebar-sticky">
+                    <div id="accordion">
+                        <div class="card">
+                            <div class="card-header" id="hdr_control">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link" data-toggle="collapse" data-target="#sbr_control" aria-expanded="true" aria-controls="sbr_control">
+                                Emulator Control
+                              </button>
+                                </h5>
+                            </div>
+
+                            <div id="sbr_control" class="collapse show" aria-labelledby="hdr_control" data-parent="#accordion">
+                                <div class="card-body">
+                                    <table class="btn_tbl">
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm btn-block" id="btn_start">Start</button>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm btn-block" id="btn_pause">Pause</button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm btn-block" id="btn_lockmouse">Lock Mouse</button>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm btn-block" id="btn_fullscreen">Fullscreen</button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm btn-block" id="btn_ctrlaltdel" disabled>Send CTRL+ALT+DEL</button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header" id="hdr_config">
+                                <h5 class="mb-0">
+                                    <button class="btn btn-link collapsed" data-toggle="collapse" data-target="#sbr_config" aria-expanded="false" aria-controls="sbr_config">
+                                Configuration
+                              </button>
+                                </h5>
+                            </div>
+                            <div id="sbr_config" class="collapse" aria-labelledby="hdr_config" data-parent="#accordion">
+                                <div class="card-body">
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#mdl_memory">
+                                                    Memory
+                                                </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#mdl_rom">
+                                                    ROM Images
+                                                </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#mdl_dev">
+                                                    Devices
+                                                </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#mdl_drv">
+                                                    Drives
+                                                </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal" data-target="#mdl_other">
+                                                    Other
+                                                </button>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </nav>
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+                <div class="text-center">
+                    <span><span id="speed">0</span> MIPS</span>
+                </div>
+                <div class="text-center">
+                    <canvas id="canvas" height="480" width="640">Your browser does not support canvas</canvas>
+                </div>
+                <div class="text-center">
+                    <span>Downloading <code id="pbt">nothing</code><progress id="pb" max="100" value="0"></progress>
+                </div>
+            </main>
+        </div>
+    </div>
+    <!-- Modals -->
+
+    <!-- Memory modal -->
+    <div class="modal" tabindex="-1" id="mdl_memory">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Memory</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="inp_memsz">RAM size</label>
+                        <input type="number" class="form-control" id="inp_memsz" aria-describedby="hlp_memsz" value="32" min="1" max="3072" />
+                        <small id="hlp_memsz" class="form-text text-muted">Megabytes of memory allocated to guest</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="inp_vmemsz">Video RAM size</label>
+                        <input type="number" class="form-control" id="inp_vmemsz" aria-describedby="hlp_vmemsz" value="4" />
+                        <small id="hlp_vmemsz" class="form-text text-muted">Megabytes of video memory</small>
+                    </div>
+                </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- BIOS modal -->
+    <div class="modal" tabindex="-1" id="mdl_rom">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">ROM Images</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="inp_bios">BIOS image</label>
+                        <input type="file" class="form-control" id="inp_bios" aria-describedby="hlp_bios" />
+                        <small id="hlp_bios" class="form-text text-muted">
+                            Loads <code>bios.img</code> by default. 
+                            <a href="#" id="clearbios">Clear</a>
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="inp_vgabios">Video BIOS</label>
+                        <input type="file" class="form-control" id="inp_vgabios" aria-describedby="hlp_vgabios" value="4" />
+                        <small id="hlp_vgabios" class="form-text text-muted">
+                            Loads <code>vgabios.img</code> by default.
+                            <a href="#" id="clearvgabios">Clear</a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device modal-->
+    <div class="modal" tabindex="-1" id="mdl_dev">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Devices</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="inp_pci" checked />
+                            <label class="form-check-label" for="inp_pci" aria-describedby="hlp_pci">
+                            PCI
+                        </label>
+                            <small id="hlp_pci" class="form-text text-muted">If checked, simulate a PC with a PCI adapter. Otherwise, simulates an ISA system.</small>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="inp_pcivga" />
+                            <label class="form-check-label" for="inp_pcivga" aria-describedby="hlp_pcivga">
+                            PCI VGA controller
+                        </label>
+                            <small id="hlp_pcivga" class="form-text text-muted">Connect the VGA display adapter to the PCI bus. Allows some systems (like ReactOS) to detect more video modes, but is slow and incomplete.</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="inp_apic" checked />
+                            <label class="form-check-label" for="inp_apic" aria-describedby="hlp_apic">
+                            APIC
+                        </label>
+                            <small id="hlp_pcivga" class="form-text text-muted">An APIC is integrated with almost every CPU that Halfix can emulate. Should only be disabled if you know what you're doing.</small>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="inp_acpi" checked />
+                            <label class="form-check-label" for="inp_acpi" aria-describedby="hlp_acpi">
+                            ACPI
+                        </label>
+                            <small id="hlp_acpi" class="form-text text-muted">Required by newer operating systems for timing.</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="inp_floppy" />
+                            <label class="form-check-label" for="inp_floppy" aria-describedby="hlp_floppy">
+                            Floppy disk controller
+                        </label>
+                            <small id="hlp_floppy" class="form-text text-muted">Supports the bare minimum of features. Buggy and incomplete. </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drive modals -->
+    <div class="modal" tabindex="-1" id="mdl_drv">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Drives</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="btn-group" role="group" aria-label="Select disk">
+                        <button type="button" class="btn btn-secondary disksel" data-id="0">ata0-master</button>
+                        <button type="button" class="btn btn-secondary disksel" data-id="1">ata0-slave</button>
+                        <button type="button" class="btn btn-secondary disksel" data-id="2">ata1-master</button>
+                        <button type="button" class="btn btn-secondary disksel" data-id="3">ata1-slave</button>
+                    </div>
+                    <hr />
+                    <h6>Drive type</h6>
+                    <div class="btn-group" role="group" aria-label="Select type">
+                        <button type="button" class="btn btn-secondary typesel" data-type="none">Not inserted</button>
+                        <button type="button" class="btn btn-secondary typesel" data-type="hd">Hard disk</button>
+                        <button type="button" class="btn btn-secondary typesel" data-type="cd">CD-ROM</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="inp_ata0">Disk image</label>
+                        <input type="file" class="form-control" id="inp_ata0" />
+                        <input type="file" class="form-control" id="inp_ata1" />
+                        <input type="file" class="form-control" id="inp_ata2" />
+                        <input type="file" class="form-control" id="inp_ata3" />
+                        <small id="hlp_vmemsz" class="form-text text-muted">
+                            Images are not uploaded to server.
+                            <a href="#" id="clearata">Clear</a>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Other options -->
+    <div class="modal" tabindex="-1" id="mdl_other">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Other Settings</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="inp_fast" checked />
+                        <label class="form-check-label" for="inp_fast" aria-describedby="hlp_fast">
+                        Turbo mode
+                    </label>
+                        <small id="hlp_fast" class="form-text text-muted">If checked, the emulator runs as fast as possible, causing time to become desynchronized.</small>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="inp_winnt" />
+                        <label class="form-check-label" for="inp_winnt" aria-describedby="hlp_winnt">
+                        Work around Windows NT CPUID bug
+                    </label>
+                        <small id="hlp_winnt" class="form-text text-muted">If checked, the reported CPUID level is set to 2. Other functionality isn't compromised. </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Halfix scripts -->
+    <script src="lib/pako_inflate.min.js"></script>
+    <script src="lib/jszip.min.js"></script>
+    <!-- <script src="libhalfix.js"></script> -->
+    <!-- <script src="runtime.js"></script> -->
+    <script src="libhalfix.js"></script>
+    <script>
+        function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, '\\$&');
+            var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, ' '));
+        }
+
+        var halfix, savestate = null,
+            alreadyRunning = false;
+
+        function pause() {
+            $("#btn_pause").attr("disabled", "disabled").blur();
+            $("#btn_start").removeAttr("disabled").blur();
+            halfix.pause(true);
+        }
+
+        function run(options) {
+            if (alreadyRunning) {
+                $("#btn_start").attr("disabled", "disabled").blur();
+                $("#btn_pause").removeAttr("disabled").blur();
+                halfix.pause(false);
+                halfix.run();
+                return;
+            }
+            alreadyRunning = true;
+            $("#btn_start").attr("disabled", "disabled").blur();
+            $("#btn_pause").removeAttr("disabled").blur();
+            $("#btn_ctrlaltdel").removeAttr("disabled");
+            if (!halfix) {
+                halfix = new Halfix(options);
+
+                halfix.init(function() {
+                    if (savestate)
+                        halfix.loadStateXHR(savestate, function() {
+                            halfix.run();
+                        });
+                    else
+                        halfix.run();
+                });
+            } else {
+                halfix.pause(false);
+                halfix.run();
+            }
+        }
+
+        function mkConfig(opts) {
+            opts.mem = $("#inp_memsz").val();
+            opts.vgamem = $("#inp_vmemsz").val();
+
+            opts.fast = $("#inp_fast")[0].checked;
+
+            console.log($("#inp_bios")[0].files);
+            opts.bios = $("#inp_bios")[0].files[0] || "bios.bin";
+            opts.vgabios = $("#inp_vgabios")[0].files[0] || "vgabios.bin";
+
+            opts.apic = $("#inp_apic")[0].checked;
+            opts.acpi = $("#inp_acpi")[0].checked;
+            opts.pci = $("#inp_pci")[0].checked;
+            opts.pcivga = $("#inp_pcivga")[0].checked;
+            opts.floppy = $("#inp_floppy")[0].checked;
+            opts.winnt_hack = getParameterByName("winnt") ? true : $("#inp_winnt")[0].checked;
+
+            var pbt = $("#pbt"),
+                pb = $("#pb")[0];
+            opts.onprogress = function(file, cur, tot) {
+                pbt.html(file);
+                pb.setAttribute("value", (cur / tot * 100) | 0);
+            };
+
+            var letters = ["a", "b", "c", "d"];
+            for (var i = 0; i < 4; i++) {
+                if (diskinfos[i].type !== "none") {
+                    var str = diskinfos[i].type + letters[i];
+                    var obj = $("#inp_ata" + i)[0];
+                    var obj2 = obj.files[0];
+                    if (obj2) {
+                        opts[str] = obj2;
+                    }
+                } else {
+                    if (getParameterByName("hd" + letters[i]) || getParameterByName("cd" + letters[i])) {
+                        var str = getParameterByName("hd" + letters[i]) ? "hd" + letters[i] : "cd" + letters[i];
+                        opts[str] = getParameterByName(str);
+                    }
+                }
+            }
+
+            savestate = getParameterByName("savestate");
+
+            opts.canvas = document.getElementById("canvas");
+        }
+
+        var currentSelected = -1;
+
+        var disksels = [],
+            diskinfos = [],
+            typobj = {},
+            typsels = [];
+
+        function selectType(n) {
+            for (var i = 0; i < typsels.length; i++) {
+                if (typsels[i] !== n) typsels[i].removeClass("active");
+            }
+            n.addClass("active");
+        }
+
+        function loadATAdata(id) {
+            currentSelected = id;
+            for (var i = 0; i < 4; i++) {
+                var str = "inp_ata" + i;
+                if (id === i) {
+                    $("#" + str).show();
+                    disksels[i].addClass("active");
+                } else {
+                    $("#" + str).hide();
+                    disksels[i].removeClass("active");
+                }
+            }
+            selectType(typobj[diskinfos[id].type]);
+        }
+
+        $(document).ready(function() {
+            var sidebarState = 1;
+            $("#sidebarCollapse").on("click", function() {
+                $("#sidebar").toggleClass("active");
+                sidebarState ^= 1;
+                $("#itxt").text((sidebarState ? "Close" : "Open") + " Sidebar")
+            });
+
+            $("#clearbios").click(function() {
+                $("#inp_bios").val(null);
+            });
+            $("#clearvgabios").click(function() {
+                $("#inp_vgabios").val(null);
+            });
+            $("#clearata").click(function() {
+                $("#inp_ata" + currentSelected).val(null);
+            });
+
+            $(".disksel").each(function() {
+                var n = $(this);
+                diskinfos[disksels.length] = {
+                    type: "none"
+                };
+                disksels.push(n);
+                n.click(function() {
+                    loadATAdata(parseInt(n.attr("data-id")));
+                });
+            });
+
+            $(".typesel").each(function() {
+                var n = $(this);
+                typsels.push(n);
+                typobj[n.attr("data-type")] = n;
+                n.click(function() {
+                    diskinfos[currentSelected].type = n.attr("data-type");
+                    for (var i = 0; i < typsels.length; i++) {
+                        if (typsels[i] !== n) typsels[i].removeClass("active");
+                    }
+                    n.addClass("active");
+                });
+            });
+            typsels[0].addClass("active");
+            loadATAdata(0);
+
+            // Make configuration options logically consistent
+            $("#inp_pci").change(function() {
+                if (!this.checked) {
+                    $("#inp_pcivga").val(false);
+                    $("#inp_pcivga").attr("disabled", "disabled");
+                    $("#inp_acpi").val(false);
+                    $("#inp_acpi").attr("disabled", "disabled");
+                } else {
+                    $("#inp_pcivga").removeAttr("disabled");
+                    $("#inp_acpi").removeAttr("disabled");
+                }
+            });
+
+            var speed = document.getElementById("speed");
+            var opts = {
+                reportSpeed: function(s) {
+                    speed.innerHTML = s;
+                }
+            };
+
+            // Emscripten may override our "run"
+            var run = window.run;
+            $("#btn_start").on("click", function() {
+                if (!alreadyRunning)
+                    if (opts) {
+                        mkConfig(opts);
+                    }
+                run(opts);
+                opts = null;
+            });
+            $("#btn_pause").on("click", function() {
+                pause();
+            });
+            $("#btn_lockmouse").on("click", function() {
+                lockMouse();
+            });
+            $("#btn_fullscreen").on("click", function() {
+                fullScreen();
+            });
+            $("#btn_ctrlaltdel").on("click", function() {
+                halfix.send_ctrlaltdel();
+            });
+
+            if (getParameterByName("autostart")) {
+                mkConfig(opts);
+                run(opts);
+            }
+        });
+
+        function lockMouse() {
+            document.getElementById("canvas").requestPointerLock();
+        }
+
+        function fullScreen() {
+            lockMouse();
+            halfix.fullscreen();
+        }
+    </script>
+    <style>
+        .sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            padding: 48px 0 0;
+            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+        }
+        
+        .btn_tbl {
+            width: 100%;
+        }
+        
+        main {
+            padding-top: 48px;
+        }
+    </style>
+</body>
+
+</html>
